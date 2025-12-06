@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -71,26 +72,52 @@ app.post('/api/register', async (req, res) => {
 });
 
 // 3. USER LOGIN
+=======
+// 3. USER LOGIN (The Missing Piece)
+>>>>>>> b6620fe (feat: initial commit of React UI and full stack integration)
 app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
 
+<<<<<<< HEAD
         const user = await User.findOne({ email });
         if (!user) return res.status(400).json({ error: "User not found" });
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) return res.status(400).json({ error: "Invalid credentials" });
 
+=======
+        // 1. Check if user exists
+        const user = await User.findOne({ email });
+        if (!user) return res.status(400).json({ error: "User not found" });
+
+        // 2. Check if password matches
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) return res.status(400).json({ error: "Invalid credentials" });
+
+        // 3. Create Login Token
+>>>>>>> b6620fe (feat: initial commit of React UI and full stack integration)
         const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
         res.json({
             token,
+<<<<<<< HEAD
             user: { id: user._id, name: user.name, email: user.email, role: user.role, walletBalance: user.walletBalance }
+=======
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                walletBalance: user.walletBalance
+            }
+>>>>>>> b6620fe (feat: initial commit of React UI and full stack integration)
         });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
+<<<<<<< HEAD
 
 // 4. ADD PRODUCT (Requires Seller ID - should be protected)
 app.post('/api/products', async (req, res) => {
@@ -213,3 +240,5 @@ app.post('/api/orders/accept/:orderId', auth, async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+=======
+>>>>>>> b6620fe (feat: initial commit of React UI and full stack integration)

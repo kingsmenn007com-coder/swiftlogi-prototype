@@ -9,7 +9,7 @@ const Login = ({ onLogin }) => {
         e.preventDefault();
         try {
             // Connects to the backend server running on port 5000
-            const res = await fetch('http://localhost:5000/api/login', {
+            const res = await fetch('/api/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })

@@ -1,10 +1,19 @@
 # Dependency directories
 /node_modules
+<<<<<<< HEAD
+
+# Environment variables
+.env
+=======
 /dist
+>>>>>>> b6620fe (feat: initial commit of React UI and full stack integration)
 
 # Logs
 npm-debug.log*
 yarn-debug.log*
+<<<<<<< HEAD
+=======
 
 # OS generated files
 .DS_Store
+>>>>>>> b6620fe (feat: initial commit of React UI and full stack integration)

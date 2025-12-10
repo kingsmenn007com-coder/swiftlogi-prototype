@@ -8,16 +8,19 @@ const Login = ({ onLogin }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            // Connects to the backend server running on port 5000
-            const res = await fetch('/api/login', {
+            // Determine the backend URL: use Vercel env variable in production, 
+            // or default to empty string for local dev (which triggers the Vite proxy).
+            const backendUrl = import.meta.env.VITE_BACKEND_URL || '';
+
+            const res = await fetch(`${backendUrl}/api/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
             });
-            
+
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
-            
+
             // If successful, sends user data back to the main App.jsx
             onLogin(data.user); 
         } catch (err) {
@@ -30,7 +33,7 @@ const Login = ({ onLogin }) => {
             <div className="bg-white p-8 rounded-xl shadow-lg w-96">
                 <h2 className="text-2xl font-bold mb-6 text-center text-indigo-700">Login to SwiftLogi</h2>
                 {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}
-                
+
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <input 
                         type="email" 

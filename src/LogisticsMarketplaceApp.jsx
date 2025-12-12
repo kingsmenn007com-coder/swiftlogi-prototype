@@ -4,12 +4,13 @@ import React, { useState, useEffect } from 'react';
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
 const API_URL = `${API_BASE_URL}/api`;
 
-// Reusable Button Component
-const Button = ({ children, onClick, color = 'indigo', fullWidth = false }) => (
+// Reusable Button Component (Simplified for robust Tailwind class recognition)
+const Button = ({ children, onClick, className = '' }) => (
     <button
         onClick={onClick}
+        // Use static classes here to ensure Tailwind finds them, adding any passed custom classes
         className={`px-4 py-2 text-sm font-medium rounded-lg shadow-md transition duration-200 
-                    ${fullWidth ? 'w-full' : ''} bg-${color}-600 text-white hover:bg-${color}-700`}
+                    bg-indigo-600 text-white hover:bg-indigo-700 ${className}`}
     >
         {children}
     </button>
@@ -23,7 +24,6 @@ const mockJobs = [
 
 
 // --- THE CORE APPLICATION COMPONENT ---
-// Note: The parent App component passes down setUser to allow local logout
 const App = ({ user, onLogout }) => {
     if (!user) return <div className="p-10 text-center">Authentication Error.</div>; 
 
@@ -32,23 +32,15 @@ const App = ({ user, onLogout }) => {
 
     // Fetch Real Products from your Backend
     useEffect(() => {
-        fetch(`${API_URL}/products`, {
-            headers: {
-                // NOTE: In a real app, you would pass the JWT token here!
-                // 'Authorization': `Bearer ${localStorage.getItem('token')}`
-            }
-        })
+        fetch(`${API_URL}/products`)
             .then(res => res.json())
             .then(data => {
-                // Check if data is an array (to handle the crash)
                 if (Array.isArray(data)) {
                     setProducts(data);
                 } else {
-                    // If products API is not fully implemented, use a fallback to prevent crash
-                    console.warn("API did not return an array. Using mock product data.");
+                    // Fallback data if products API fails or is empty
                     setProducts([
-                        { _id: "mock1", name: "Mock Laptop", description: "High-end computing device.", price: 450000, seller: { name: "Seller A" } },
-                        { _id: "mock2", name: "Mock Furniture", description: "Office table and chairs.", price: 120000, seller: { name: "Seller B" } },
+                        { _id: "mock1", name: "Mock Laptop", description: "Device", price: 450000, seller: { name: "Seller A" } },
                     ]);
                 }
                 setLoading(false);
@@ -56,14 +48,13 @@ const App = ({ user, onLogout }) => {
             .catch(err => {
                 console.error("Error fetching products:", err);
                 setLoading(false);
-                // Use mock data on API error to prevent blank screen
                 setProducts([
-                    { _id: "mock1", name: "Mock Laptop (Error Fallback)", description: "High-end computing device.", price: 450000, seller: { name: "Seller A" } },
+                    { _id: "mock1", name: "Mock Laptop (Error Fallback)", description: "Device", price: 450000, seller: { name: "Seller A" } },
                 ]);
             });
     }, []);
 
-    // Function to handle Buy Now logic
+    // Function to handle Buy Now logic (unchanged)
     const handleBuyNow = async (product) => {
         const orderData = {
             buyerId: user.id, 
@@ -81,7 +72,7 @@ const App = ({ user, onLogout }) => {
 
             const data = await res.json();
             if (res.ok) {
-                alert(`SUCCESS! Order Placed. Commission: ₦${data.yourCommission.toLocaleString()}. See logs for details.`);
+                alert(`SUCCESS! Order Placed. Commission: ₦${data.yourCommission.toLocaleString()}.`);
             } else {
                 alert(`ERROR: ${data.error || 'Failed to place order.'}`);
             }
@@ -93,13 +84,10 @@ const App = ({ user, onLogout }) => {
 
     // Function to handle Logout
     const handleLogout = () => {
-        // In a real app, you would clear the JWT token from localStorage here.
-        // Since you just need to return to the login screen, we call the parent function.
         onLogout();
     };
 
     // --- Conditional Content Rendering ---
-
     const renderContent = () => {
         if (user.role === 'rider') {
             return (
@@ -112,12 +100,11 @@ const App = ({ user, onLogout }) => {
                                 <p className="font-semibold">Pickup: {job.pickup}</p>
                                 <p className="text-sm">Distance: {job.distance}</p>
                             </div>
-                            <Button color="green" onClick={() => alert(`Rider accepted Job #${job.id}`)}>
+                            <Button className="bg-green-600 hover:bg-green-700" onClick={() => alert(`Rider accepted Job #${job.id}`)}>
                                 Accept Job (₦{job.fee})
                             </Button>
                         </div>
                     ))}
-                    <p className="mt-8 text-xs text-gray-400">Note: This is the view for unemployed youth to earn money.</p>
                 </div>
             );
         }
@@ -128,10 +115,9 @@ const App = ({ user, onLogout }) => {
                     <div className="bg-white p-6 rounded-xl shadow-lg border-t-4 border-yellow-500">
                         <h3 className="text-xl font-bold mb-2">Seller/Admin Status</h3>
                         <p className="text-3xl font-extrabold text-green-600">Active</p>
-                        <p className="text-sm text-gray-500 mt-2">View orders or manage listings.</p>
                     </div>
 
-                    <h2 className="text-2xl font-bold mb-4">Live Marketplace (All Roles Can View)</h2>
+                    <h2 className="text-2xl font-bold mb-4">Live Marketplace</h2>
 
                     {loading ? (
                         <p className="text-center text-gray-500">Loading products from cloud...</p>
@@ -164,8 +150,13 @@ const App = ({ user, onLogout }) => {
                 <h1 className="text-2xl font-bold text-indigo-700">SwiftLogi</h1>
                 <div className="flex items-center space-x-3">
                     <span className="text-sm font-normal text-gray-600">Logged in as: **{user.role.toUpperCase()}**</span>
-                    {/* THE LOGOUT BUTTON WITH TEXT */}
-                    <Button color="red" onClick={handleLogout}>Logout</Button> 
+                    {/* THE LOGOUT BUTTON FIX: Uses specific Tailwind classes for a red button */}
+                    <button 
+                        onClick={handleLogout}
+                        className="px-4 py-2 text-sm font-medium rounded-lg shadow-md transition duration-200 bg-red-600 text-white hover:bg-red-700"
+                    >
+                        Logout
+                    </button> 
                 </div>
             </header>
 

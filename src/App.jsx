@@ -1,53 +1,26 @@
 import React, { useState } from 'react';
 import LogisticsMarketplaceApp from './LogisticsMarketplaceApp';
-import Login from './Login';
-import Register from './Register';
+import Login from './Login'; 
 
 function App() {
-    const [user, setUser] = useState(null);
-    const [view, setView] = useState('login'); 
+  const [user, setUser] = useState(null);
 
-    const handleLoginOrRegister = (userData) => {
-        setUser(userData);
-        setView('marketplace'); 
-    };
+  // This function clears the user state, triggering the App to show the Login component
+  const handleLogout = () => {
+    setUser(null);
+  };
 
-    // NEW: Function to clear the user state
-    const handleLogout = () => {
-        // Clearing the token from localStorage will be done in the component that renders the button.
-        setUser(null); // This forces the app to show the login/register view
-        setView('login');
-    };
-
-    const renderAuthView = () => {
-        if (view === 'register') {
-            return (
-                <Register 
-                    onRegister={handleLoginOrRegister}
-                    switchToLogin={() => setView('login')}
-                />
-            );
-        }
-        // Default to Login view
-        return (
-            <Login 
-                onLogin={handleLoginOrRegister}
-                switchToRegister={() => setView('register')}
-            />
-        );
-    };
-
-    return (
-        <div>
-            {/* Renders Login/Register view if user is NULL, otherwise renders the full app */}
-            {!user ? (
-                renderAuthView()
-            ) : (
-                // PASSING THE LOGOUT FUNCTION HERE
-                <LogisticsMarketplaceApp user={user} onLogout={handleLogout} /> 
-            )}
-        </div>
-    );
+  return (
+    <div>
+      {/* Renders Login if user is NULL, otherwise renders the full app */}
+      {!user ? (
+        <Login onLogin={(userData) => setUser(userData)} />
+      ) : (
+        // Pass the user data AND the logout handler to the main app component
+        <LogisticsMarketplaceApp user={user} onLogout={handleLogout} />
+      )}
+    </div>
+  );
 }
 
 export default App;

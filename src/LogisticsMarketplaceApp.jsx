@@ -8,7 +8,6 @@ const API_URL = `${API_BASE_URL}/api`;
 const Button = ({ children, onClick, className = '' }) => (
     <button
         onClick={onClick}
-        // Use static classes here to ensure Tailwind finds them, adding any passed custom classes
         className={`px-4 py-2 text-sm font-medium rounded-lg shadow-md transition duration-200 
                     bg-indigo-600 text-white hover:bg-indigo-700 ${className}`}
     >
@@ -32,15 +31,29 @@ const App = ({ user, onLogout }) => {
 
     // Fetch Real Products from your Backend
     useEffect(() => {
-        fetch(`${API_URL}/products`)
+        // Retrieve token from Local Storage
+        const token = localStorage.getItem('token');
+        if (!token) {
+            console.error("No token found. Cannot fetch protected route.");
+            setLoading(false);
+            return;
+        }
+
+        fetch(`${API_URL}/products`, {
+            headers: {
+                // *** CRITICAL: Pass the JWT token for authentication ***
+                'Authorization': `Bearer ${token}`
+            }
+        })
             .then(res => res.json())
             .then(data => {
                 if (Array.isArray(data)) {
                     setProducts(data);
                 } else {
                     // Fallback data if products API fails or is empty
+                    console.warn("API did not return an array. Using mock product data.");
                     setProducts([
-                        { _id: "mock1", name: "Mock Laptop", description: "Device", price: 450000, seller: { name: "Seller A" } },
+                        { _id: "mock1", name: "Mock Product A", description: "Default item.", price: 100000, seller: { name: "Mock Seller" } },
                     ]);
                 }
                 setLoading(false);
@@ -48,14 +61,21 @@ const App = ({ user, onLogout }) => {
             .catch(err => {
                 console.error("Error fetching products:", err);
                 setLoading(false);
+                // Use mock data on API error to prevent blank screen
                 setProducts([
-                    { _id: "mock1", name: "Mock Laptop (Error Fallback)", description: "Device", price: 450000, seller: { name: "Seller A" } },
+                    { _id: "mock1", name: "Mock Product A (Error Fallback)", description: "Default item.", price: 100000, seller: { name: "Mock Seller" } },
                 ]);
             });
     }, []);
 
-    // Function to handle Buy Now logic (unchanged)
+    // Function to handle Buy Now logic
     const handleBuyNow = async (product) => {
+        const token = localStorage.getItem('token');
+        if (!token) {
+            alert("You must be logged in to place an order.");
+            return;
+        }
+
         const orderData = {
             buyerId: user.id, 
             productId: product._id,
@@ -66,7 +86,11 @@ const App = ({ user, onLogout }) => {
         try {
             const res = await fetch(`${API_URL}/orders`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    // *** CRITICAL: Pass the JWT token for authentication ***
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(orderData)
             });
 
@@ -84,6 +108,7 @@ const App = ({ user, onLogout }) => {
 
     // Function to handle Logout
     const handleLogout = () => {
+        localStorage.removeItem('token'); // Clear the JWT token
         onLogout();
     };
 

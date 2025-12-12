@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
+// --- API URL FIX: Uses the Vercel environment variable ---
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
 const API_URL = `${API_BASE_URL}/api`;
 
@@ -13,101 +14,56 @@ const Button = ({ children, onClick, color = 'indigo', fullWidth = false }) => (
     </button>
 );
 
-// Mock Jobs data for Rider View (Since we haven't created the Job assignment endpoint yet)
+// Mock Jobs data
 const mockJobs = [
     { id: 1, pickup: 'Lagos Island Market', dropoff: 'Ikeja Residential', fee: 1500, distance: '12.5 km' },
     { id: 2, pickup: 'Victoria Island HQ', dropoff: 'Surulere Apt.', fee: 2200, distance: '18 km' },
 ];
 
 
-// ... inside the App component, before the useEffect hook
+// --- THE CORE APPLICATION COMPONENT ---
 const App = ({ user }) => {
-    if (!user) return <div className="p-10 text-center">Authentication Error.</div>;
+    if (!user) return <div className="p-10 text-center">Authentication Error.</div>; 
 
     // Helper function to get the stored token
     const getToken = () => localStorage.getItem('token');
 
     const [products, setProducts] = useState([]);
-    // ... rest of state definitions
-
-    // 1. FIX THE useEffect (Product Fetch)
-    useEffect(() => {
-        const token = getToken(); // Get the token
-        if (!token) return; // Exit if no token (shouldn't happen after login)
-
-        fetch(`${API_URL}/products`, {
-            // Add the Authorization header here!
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        })
-            .then(res => res.json())
-            // ... rest of the .then and .catch blocks
-    }, []);
-
-
-    // 2. FIX THE handleBuyNow function (Order Post)
-    const handleBuyNow = async (product) => {
-        // ... orderData definition
-
-        const token = getToken(); // Get the token for this request
-
-        try {
-            const res = await fetch(`${API_URL}/orders`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    // Add the Authorization header here!
-                    'Authorization': `Bearer ${token}` 
-                },
-                body: JSON.stringify(orderData)
-            });
-
-            // ... rest of error handling
-        } catch (error) {
-            alert('Network error placing order.');
-        }
-    };
-    // ... rest of the App component 
-
-    const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [view, setView] = useState('marketplace'); // Default view
 
-    // Fetch Real Products from your Backend
-useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        setLoading(false);
-        return console.error("No token found for API request.");
-    }
-
-    fetch(`${API_URL}/products`, {
-        headers: {
-            'Authorization': `Bearer ${token}` // <--- THIS IS THE MISSING KEY
+    // Fetch Real Products from your Backend (SECURED WITH TOKEN)
+    useEffect(() => {
+        const token = getToken(); 
+        if (!token) {
+            setLoading(false);
+            return console.error("No token found for API request.");
         }
-    })
-    .then(res => {
-        if (!res.ok) {
-            // If authentication fails (401), throw an error, which prevents the crash
-            throw new Error('Failed to fetch products: Authentication required.');
-        }
-        return res.json();
-    })
-    .then(data => {
-        setProducts(data);
-        setLoading(false);
-    })
-    .catch(err => {
-        console.error("Error fetching products:", err);
-        setLoading(false);
-        // The crash is resolved by handling the error gracefully here.
-    });
-}, [user.id]); // Re-run if user changes
 
-    // Function to handle Buy Now logic
+        fetch(`${API_URL}/products`, {
+            headers: {
+                'Authorization': `Bearer ${token}` // ADDED SECURITY TOKEN
+            }
+        })
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error('Failed to fetch products: Authentication required.');
+                }
+                return res.json();
+            })
+            .then(data => {
+                setProducts(data);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("Error fetching products:", err);
+                setLoading(false);
+            });
+    }, [user.id]); // Re-run if user changes
+
+
+    // Function to handle Buy Now logic (SECURED WITH TOKEN)
     const handleBuyNow = async (product) => {
-        // ... (Order placement logic remains the same)
         const orderData = {
             buyerId: user.id, 
             productId: product._id,
@@ -115,10 +71,15 @@ useEffect(() => {
             deliveryFee: 1500 
         };
 
+        const token = getToken(); 
+
         try {
             const res = await fetch(`${API_URL}/orders`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` // ADDED SECURITY TOKEN
+                },
                 body: JSON.stringify(orderData)
             });
 
@@ -168,7 +129,7 @@ useEffect(() => {
                     </div>
 
                     <h2 className="text-2xl font-bold mb-4">Live Marketplace (All Roles Can View)</h2>
-                    
+
                     {loading ? (
                         <p className="text-center text-gray-500">Loading products from cloud...</p>
                     ) : (

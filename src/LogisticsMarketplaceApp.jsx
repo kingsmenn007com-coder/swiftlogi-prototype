@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-// --- API URL FIX: Uses the Vercel environment variable ---
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
 const API_URL = `${API_BASE_URL}/api`;
 
@@ -21,8 +20,8 @@ const mockJobs = [
 ];
 
 
-// --- THE CORE APPLICATION COMPONENT ---
-const App = ({ user }) => {
+// --- THE CORE APPLICATION COMPONENT (UPDATED to accept onLogout) ---
+const App = ({ user, onLogout }) => {
     if (!user) return <div className="p-10 text-center">Authentication Error.</div>; 
 
     // Helper function to get the stored token
@@ -42,7 +41,7 @@ const App = ({ user }) => {
 
         fetch(`${API_URL}/products`, {
             headers: {
-                'Authorization': `Bearer ${token}` // ADDED SECURITY TOKEN
+                'Authorization': `Bearer ${token}` 
             }
         })
             .then(res => {
@@ -59,7 +58,7 @@ const App = ({ user }) => {
                 console.error("Error fetching products:", err);
                 setLoading(false);
             });
-    }, [user.id]); // Re-run if user changes
+    }, [user.id]); 
 
 
     // Function to handle Buy Now logic (SECURED WITH TOKEN)
@@ -78,7 +77,7 @@ const App = ({ user }) => {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` // ADDED SECURITY TOKEN
+                    'Authorization': `Bearer ${token}` 
                 },
                 body: JSON.stringify(orderData)
             });
@@ -94,6 +93,13 @@ const App = ({ user }) => {
             alert('Network error placing order.');
         }
     };
+    
+    // LOGOUT HANDLER
+    const handleLogout = () => {
+        localStorage.removeItem('token'); // Clear the token from browser storage
+        onLogout(); // Call the function from App.jsx to reset user state
+    };
+
 
     // --- Conditional Content Rendering ---
 
@@ -159,7 +165,14 @@ const App = ({ user }) => {
         <div className="min-h-screen bg-gray-50 font-sans p-4">
             <header className="bg-white shadow-sm p-4 mb-6 rounded-lg flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-indigo-700">SwiftLogi</h1>
-                <span className="text-sm font-normal text-gray-600">Logged in as: **{user.role.toUpperCase()}**</span>
+                <div className="flex items-center space-x-4"> {/* ADDED FLEX CONTAINER */}
+                    <span className="text-sm font-normal text-gray-600">Logged in as: **{user.role.toUpperCase()}**</span>
+                    
+                    {/* LOGOUT BUTTON */}
+                    <Button color="red" onClick={handleLogout}>
+                        Logout
+                    </Button>
+                </div>
             </header>
 
             <main>

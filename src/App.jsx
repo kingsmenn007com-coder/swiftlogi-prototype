@@ -1,25 +1,22 @@
 import React, { useState } from 'react';
 import LogisticsMarketplaceApp from './LogisticsMarketplaceApp';
 import Login from './Login';
-import Register from './Register'; // <-- NEW IMPORT
+import Register from './Register';
 
 function App() {
     const [user, setUser] = useState(null);
-    const [view, setView] = useState('login'); // <-- NEW STATE: 'login' or 'register'
-
-    // Function to check local storage for token on initial load (optional, but good practice)
-    // You can add logic here to fetch the user if a token exists. For now, we will keep it simple.
-    // useEffect(() => {
-    //     const token = localStorage.getItem('token');
-    //     if (token) {
-    //         // Here you would typically decode the token or call an API to validate and get user data
-    //         // For this prototype, we'll rely on the manual login/register flow.
-    //     }
-    // }, []);
+    const [view, setView] = useState('login'); 
 
     const handleLoginOrRegister = (userData) => {
         setUser(userData);
-        setView('marketplace'); // Switch to the main app view
+        setView('marketplace'); 
+    };
+
+    // NEW: Function to clear the user state
+    const handleLogout = () => {
+        // Clearing the token from localStorage will be done in the component that renders the button.
+        setUser(null); // This forces the app to show the login/register view
+        setView('login');
     };
 
     const renderAuthView = () => {
@@ -46,7 +43,8 @@ function App() {
             {!user ? (
                 renderAuthView()
             ) : (
-                <LogisticsMarketplaceApp user={user} />
+                // PASSING THE LOGOUT FUNCTION HERE
+                <LogisticsMarketplaceApp user={user} onLogout={handleLogout} /> 
             )}
         </div>
     );

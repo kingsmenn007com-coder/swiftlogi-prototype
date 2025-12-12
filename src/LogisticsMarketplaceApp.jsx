@@ -20,9 +20,55 @@ const mockJobs = [
 ];
 
 
-// --- THE CORE APPLICATION COMPONENT ---
+// ... inside the App component, before the useEffect hook
 const App = ({ user }) => {
-    if (!user) return <div className="p-10 text-center">Authentication Error.</div>; 
+    if (!user) return <div className="p-10 text-center">Authentication Error.</div>;
+
+    // Helper function to get the stored token
+    const getToken = () => localStorage.getItem('token');
+
+    const [products, setProducts] = useState([]);
+    // ... rest of state definitions
+
+    // 1. FIX THE useEffect (Product Fetch)
+    useEffect(() => {
+        const token = getToken(); // Get the token
+        if (!token) return; // Exit if no token (shouldn't happen after login)
+
+        fetch(`${API_URL}/products`, {
+            // Add the Authorization header here!
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        })
+            .then(res => res.json())
+            // ... rest of the .then and .catch blocks
+    }, []);
+
+
+    // 2. FIX THE handleBuyNow function (Order Post)
+    const handleBuyNow = async (product) => {
+        // ... orderData definition
+
+        const token = getToken(); // Get the token for this request
+
+        try {
+            const res = await fetch(`${API_URL}/orders`, {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    // Add the Authorization header here!
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify(orderData)
+            });
+
+            // ... rest of error handling
+        } catch (error) {
+            alert('Network error placing order.');
+        }
+    };
+    // ... rest of the App component 
 
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);

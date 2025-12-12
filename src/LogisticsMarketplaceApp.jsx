@@ -29,15 +29,35 @@ const App = ({ user }) => {
     const [view, setView] = useState('marketplace'); // Default view
 
     // Fetch Real Products from your Backend
-    useEffect(() => {
-        fetch(`${API_URL}/products`)
-            .then(res => res.json())
-            .then(data => {
-                setProducts(data);
-                setLoading(false);
-            })
-            .catch(err => console.error("Error fetching products:", err));
-    }, []);
+useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        setLoading(false);
+        return console.error("No token found for API request.");
+    }
+
+    fetch(`${API_URL}/products`, {
+        headers: {
+            'Authorization': `Bearer ${token}` // <--- THIS IS THE MISSING KEY
+        }
+    })
+    .then(res => {
+        if (!res.ok) {
+            // If authentication fails (401), throw an error, which prevents the crash
+            throw new Error('Failed to fetch products: Authentication required.');
+        }
+        return res.json();
+    })
+    .then(data => {
+        setProducts(data);
+        setLoading(false);
+    })
+    .catch(err => {
+        console.error("Error fetching products:", err);
+        setLoading(false);
+        // The crash is resolved by handling the error gracefully here.
+    });
+}, [user.id]); // Re-run if user changes
 
     // Function to handle Buy Now logic
     const handleBuyNow = async (product) => {

@@ -3,90 +3,58 @@ import React, { useState } from 'react';
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
 const API_URL = `${API_BASE_URL}/api`;
 
-// Updated to accept switchToRegister prop
-const Login = ({ onLogin, switchToRegister }) => {
-    const [formData, setFormData] = useState({
-        email: 'test@swiftlogi.com',
-        password: 'NewLogiPass101',
-    });
-    const [loading, setLoading] = useState(false);
-
-    const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
+// Added onSwitchToRegister prop
+const Login = ({ onLogin, onSwitchToRegister }) => {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [error, setError] = useState('');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
-
         try {
             const res = await fetch(`${API_URL}/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
+                body: JSON.stringify({ email, password })
             });
 
             const data = await res.json();
-            setLoading(false);
+            if (!res.ok) throw new Error(data.error);
 
-            if (res.ok) {
-                // Login successful, store the token and notify App.jsx
-                localStorage.setItem('token', data.token);
-                onLogin(data.user); // Pass user data back to App.jsx
-            } else {
-                alert(`Login Failed: ${data.error || 'Invalid credentials or server error.'}`);
-            }
-
-        } catch (error) {
-            setLoading(false);
-            alert('Network error. Could not connect to the server.');
+            // Store JWT token for subsequent protected requests (best practice)
+            localStorage.setItem('token', data.token);
+            onLogin(data.user); 
+        } catch (err) {
+            setError(err.message);
         }
     };
 
     return (
         <div className="flex items-center justify-center min-h-screen bg-gray-100">
-            <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-2xl border-t-4 border-indigo-600">
-                <h2 className="text-3xl font-bold text-center text-indigo-700 mb-6">Login to SwiftLogi</h2>
-                
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Email</label>
-                        <input
-                            type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            required
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700">Password</label>
-                        <input
-                            type="password"
-                            name="password"
-                            value={formData.password}
-                            onChange={handleChange}
-                            required
-                            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                        />
-                    </div>
+            <div className="bg-white p-8 rounded-xl shadow-lg w-96">
+                <h2 className="text-2xl font-bold mb-6 text-center text-indigo-700">Login to SwiftLogi</h2>
+                {error && <p className="text-red-500 text-sm mb-4 text-center">{error}</p>}
 
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
-                    >
-                        {loading ? 'Logging In...' : 'Login'}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <input 
+                        type="email" 
+                        placeholder="Email" 
+                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={email} onChange={(e) => setEmail(e.target.value)}
+                    />
+                    <input 
+                        type="password" 
+                        placeholder="Password" 
+                        className="w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        value={password} onChange={(e) => setPassword(e.target.value)}
+                    />
+                    <button type="submit" className="w-full bg-indigo-600 text-white p-3 rounded-lg hover:bg-indigo-700 font-bold">
+                        Login
                     </button>
                 </form>
-
-                {/* NEW REGISTRATION LINK */}
-                <p className="mt-4 text-center text-sm text-gray-600">
-                    No account?{' '}
-                    <button onClick={switchToRegister} className="font-medium text-indigo-600 hover:text-indigo-500">
-                        Register here
-                    </button>
+                {/* BUTTON TO SWITCH TO REGISTER VIEW */}
+                <p className="text-xs text-center text-gray-500 mt-4">
+                    No account? <button onClick={onSwitchToRegister} className="text-indigo-600 hover:text-indigo-800 font-medium">Register here!</button>
                 </p>
             </div>
         </div>

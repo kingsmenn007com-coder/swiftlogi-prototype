@@ -3,7 +3,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
 const API_URL = `${API_BASE_URL}/api`;
 
-// --- Reusable Button Component ---
 const Button = ({ children, onClick, className = '', type = 'button' }) => (
     <button
         type={type}
@@ -15,7 +14,7 @@ const Button = ({ children, onClick, className = '', type = 'button' }) => (
     </button>
 );
 
-// --- Auth Component (Login/Register) ---
+// --- Auth Component: Handles Login and Register UI ---
 const Auth = ({ onLogin }) => {
     const [isLogin, setIsLogin] = useState(true);
     const [showPassword, setShowPassword] = useState(false);
@@ -43,15 +42,15 @@ const Auth = ({ onLogin }) => {
                     localStorage.setItem('user', JSON.stringify(data.user));
                     onLogin(data.user);
                 } else {
-                    // Signal success and switch to login view
-                    setSuccessMessage("✅ Registration Successful! Please log in now.");
-                    setIsLogin(true);
+                    // Registration Success Logic
+                    setSuccessMessage("✅ Registration Successful! Please log in below.");
+                    setIsLogin(true); 
                 }
             } else {
-                setError(data.error || 'Something went wrong');
+                setError(data.error || 'Operation failed. Please try again.');
             }
         } catch (err) {
-            setError('Connection failed. Please check your backend.');
+            setError('Connection failed. Please ensure your Backend is active.');
         }
     };
 
@@ -59,7 +58,7 @@ const Auth = ({ onLogin }) => {
         <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
             <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border-t-8 border-indigo-600">
                 <h2 className="text-3xl font-extrabold text-center text-indigo-800 mb-6">
-                    {isLogin ? 'SwiftLogi Login' : 'Create Account'}
+                    {isLogin ? 'Login to SwiftLogi' : 'Register for SwiftLogi'}
                 </h2>
 
                 {successMessage && (
@@ -69,7 +68,7 @@ const Auth = ({ onLogin }) => {
                 )}
 
                 {error && (
-                    <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-center">
+                    <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-center font-medium">
                         {error}
                     </div>
                 )}
@@ -92,6 +91,7 @@ const Auth = ({ onLogin }) => {
                         required
                     />
                     
+                    {/* Password input with visibility toggle */}
                     <div className="relative">
                         <input
                             type={showPassword ? "text" : "password"}
@@ -103,9 +103,9 @@ const Auth = ({ onLogin }) => {
                         <button 
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-3 text-xs font-bold text-indigo-600 uppercase"
+                            className="absolute right-3 top-3 text-indigo-600 font-bold text-xs"
                         >
-                            {showPassword ? "Hide" : "Show"}
+                            {showPassword ? "HIDE" : "SHOW"}
                         </button>
                     </div>
 
@@ -119,18 +119,19 @@ const Auth = ({ onLogin }) => {
                             <option value="rider">Rider (Deliver Goods)</option>
                         </select>
                     )}
-                    <Button type="submit" className="w-full py-3 text-lg">
-                        {isLogin ? 'Login to Dashboard' : 'Register Now'}
+
+                    <Button type="submit" className="w-full py-3 text-lg mt-2">
+                        {isLogin ? 'Login' : 'Create Account'}
                     </Button>
                 </form>
 
-                <p className="mt-6 text-center text-gray-600">
-                    {isLogin ? "New to SwiftLogi?" : "Already have an account?"}
+                <p className="mt-6 text-center text-gray-600 font-medium">
+                    {isLogin ? "Need an account?" : "Already registered?"}
                     <button 
                         onClick={() => { setIsLogin(!isLogin); setError(''); setSuccessMessage(''); }}
                         className="ml-2 text-indigo-600 font-bold hover:underline"
                     >
-                        {isLogin ? 'Sign Up' : 'Log In'}
+                        {isLogin ? 'Register here' : 'Log in here'}
                     </button>
                 </p>
             </div>
@@ -138,23 +139,18 @@ const Auth = ({ onLogin }) => {
     );
 };
 
-// --- Order History Component ---
+// --- Marketplace & Rider Views ---
 const OrderHistory = ({ user, orders, loading }) => {
-    const titles = { buyer: 'Your Orders', seller: 'Sales History', admin: 'Platform Sales', rider: 'Accepted Jobs' };
-    if (loading) return <div className="p-4 text-center">Loading history...</div>;
+    const titles = { buyer: 'Your Orders', seller: 'Sales History', rider: 'Jobs Done' };
+    if (loading) return <div className="p-4 text-center">Loading...</div>;
     return (
         <div className="mt-8">
             <h2 className="text-2xl font-bold mb-4 border-b pb-2 text-gray-700">{titles[user.role] || 'Orders'}</h2>
-            {orders.length === 0 ? <p className="text-gray-400 italic">No transactions found.</p> : 
-                orders.map(order => (
-                    <div key={order._id} className="bg-white p-4 rounded shadow border mb-3 flex justify-between items-center">
-                        <div>
-                            <h3 className="font-bold">{order.product?.name || 'Order Details'}</h3>
-                            <p className="text-sm text-gray-600">Total: ₦{(order.price + (order.deliveryFee || 0)).toLocaleString()}</p>
-                        </div>
-                        <span className={`px-2 py-1 rounded text-[10px] font-bold ${order.status === 'shipped' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                            {order.status.toUpperCase()}
-                        </span>
+            {orders.length === 0 ? <p className="text-gray-400 italic">No activity found.</p> : 
+                orders.map(o => (
+                    <div key={o._id} className="bg-white p-4 rounded shadow border mb-3 flex justify-between items-center">
+                        <div><p className="font-bold">{o.product?.name || 'Product'}</p><p className="text-sm">₦{o.price.toLocaleString()}</p></div>
+                        <span className="text-xs font-bold bg-blue-100 text-blue-700 px-2 py-1 rounded">{o.status.toUpperCase()}</span>
                     </div>
                 ))
             }
@@ -162,8 +158,7 @@ const OrderHistory = ({ user, orders, loading }) => {
     );
 };
 
-// --- Dashboard Component ---
-const LogisticsMarketplaceApp = ({ user, onLogout }) => {
+const Marketplace = ({ user, onLogout }) => {
     const [products, setProducts] = useState([]);
     const [orders, setOrders] = useState([]);
     const [jobs, setJobs] = useState([]);
@@ -179,7 +174,7 @@ const LogisticsMarketplaceApp = ({ user, onLogout }) => {
             ]);
             setProducts(await pRes.json());
             setOrders(await oRes.json());
-            if (user.role === 'rider' || user.role === 'admin') {
+            if (user.role === 'rider') {
                 const jRes = await fetch(`${API_URL}/jobs`, { headers: { 'Authorization': `Bearer ${token}` } });
                 setJobs(await jRes.json());
             }
@@ -188,41 +183,23 @@ const LogisticsMarketplaceApp = ({ user, onLogout }) => {
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
 
-    const handleBuy = async (product) => {
-        const token = localStorage.getItem('token');
-        const sellerId = product.seller?._id || product.seller;
-        const res = await fetch(`${API_URL}/orders`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ productId: product._id, price: product.price, sellerId, deliveryFee: 1500 })
-        });
-        if (res.ok) { alert("Order Placed!"); fetchAll(); }
-    };
-
-    const handleAccept = async (orderId) => {
-        const token = localStorage.getItem('token');
-        const res = await fetch(`${API_URL}/jobs/${orderId}/accept`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
-        if (res.ok) { alert("Job Accepted!"); fetchAll(); }
-    };
-
     return (
         <div className="min-h-screen bg-gray-50 p-4">
-            <header className="bg-white p-4 mb-6 rounded shadow flex justify-between items-center max-w-5xl mx-auto w-full">
-                <h1 className="text-2xl font-black text-indigo-700">SwiftLogi</h1>
+            <header className="bg-white p-4 mb-6 rounded shadow flex justify-between items-center">
+                <h1 className="text-2xl font-bold text-indigo-700">SwiftLogi</h1>
                 <div className="flex items-center space-x-4">
-                    <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-bold uppercase">{user.role}</span>
-                    <button onClick={onLogout} className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600 transition text-xs font-bold">Logout</button>
+                    <span className="font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">{user.role.toUpperCase()}</span>
+                    <button onClick={onLogout} className="bg-red-600 text-white px-3 py-1 rounded text-sm font-bold shadow hover:bg-red-700 transition">Logout</button>
                 </div>
             </header>
-            
-            <main className="max-w-5xl mx-auto w-full">
+            <main className="max-w-4xl mx-auto">
                 {user.role === 'rider' ? (
                     <div>
-                        <h2 className="text-xl font-bold mb-4">Available Delivery Jobs</h2>
-                        {jobs.length === 0 ? <p className="bg-white p-4 rounded shadow italic text-gray-400">Searching for jobs...</p> : jobs.map(j => (
+                        <h2 className="text-xl font-bold mb-4">Delivery Jobs</h2>
+                        {jobs.map(j => (
                             <div key={j.orderId} className="bg-white p-4 rounded shadow mb-3 flex justify-between items-center">
-                                <div><p className="font-bold">{j.productName}</p><p className="text-sm text-green-600 font-bold">₦{j.riderPayout}</p></div>
-                                <Button onClick={() => handleAccept(j.orderId)}>Accept Job</Button>
+                                <div><p className="font-bold">{j.productName}</p><p className="text-sm">₦{j.riderPayout}</p></div>
+                                <Button onClick={() => alert("Job Accepted")}>Accept</Button>
                             </div>
                         ))}
                     </div>
@@ -231,10 +208,10 @@ const LogisticsMarketplaceApp = ({ user, onLogout }) => {
                         <h2 className="text-xl font-bold mb-4">Marketplace</h2>
                         <div className="grid md:grid-cols-2 gap-4">
                             {products.map(p => (
-                                <div key={p._id} className="bg-white p-4 rounded shadow border border-gray-100">
-                                    <h3 className="font-bold text-lg">{p.name}</h3>
-                                    <p className="text-indigo-600 font-black text-xl mb-3">₦{p.price.toLocaleString()}</p>
-                                    <Button className="w-full" onClick={() => handleBuy(p)}>Buy Now</Button>
+                                <div key={p._id} className="bg-white p-4 rounded shadow border-t-4 border-indigo-500">
+                                    <h3 className="font-bold">{p.name}</h3>
+                                    <p className="text-indigo-600 font-bold">₦{p.price.toLocaleString()}</p>
+                                    <Button className="mt-3 w-full" onClick={() => alert("Buy Now Clicked")}>Buy Now</Button>
                                 </div>
                             ))}
                         </div>
@@ -246,7 +223,6 @@ const LogisticsMarketplaceApp = ({ user, onLogout }) => {
     );
 };
 
-// --- Entry Logic ---
 export default function MainApp() {
     const [user, setUser] = useState(null);
     const [checking, setChecking] = useState(true);
@@ -260,10 +236,10 @@ export default function MainApp() {
         setChecking(false);
     }, []);
 
-    if (checking) return null;
+    if (checking) return <div className="p-10 text-center">Loading SwiftLogi...</div>;
 
     return user ? (
-        <LogisticsMarketplaceApp user={user} onLogout={() => { localStorage.clear(); setUser(null); }} />
+        <Marketplace user={user} onLogout={() => { localStorage.clear(); setUser(null); }} />
     ) : (
         <Auth onLogin={(u) => setUser(u)} />
     );

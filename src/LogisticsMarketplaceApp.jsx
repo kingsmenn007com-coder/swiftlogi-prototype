@@ -1,144 +1,270 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
-const API_URL = 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_BACKEND_URL || '';
+const API_URL = `${API_BASE_URL}/api`;
 
-const Button = ({ children, onClick, color = 'indigo', fullWidth = false }) => (
+// --- Reusable Button Component ---
+const Button = ({ children, onClick, className = '', type = 'button' }) => (
     <button
+        type={type}
         onClick={onClick}
         className={`px-4 py-2 text-sm font-medium rounded-lg shadow-md transition duration-200 
-                    ${fullWidth ? 'w-full' : ''} bg-${color}-600 text-white hover:bg-${color}-700`}
+                    bg-indigo-600 text-white hover:bg-indigo-700 ${className}`}
     >
         {children}
     </button>
 );
 
-// Mock Jobs data for Rider View (Since we haven't created the Job assignment endpoint yet)
-const mockJobs = [
-    { id: 1, pickup: 'Lagos Island Market', dropoff: 'Ikeja Residential', fee: 1500, distance: '12.5 km' },
-    { id: 2, pickup: 'Victoria Island HQ', dropoff: 'Surulere Apt.', fee: 2200, distance: '18 km' },
-];
+// --- Auth Component (Login/Register) ---
+const Auth = ({ onLogin }) => {
+    const [isLogin, setIsLogin] = useState(true);
+    const [showPassword, setShowPassword] = useState(false); // Password reveal state
+    const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'buyer' });
+    const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
 
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setSuccessMessage('');
 
-// --- THE CORE APPLICATION COMPONENT ---
-const App = ({ user }) => {
-    if (!user) return <div className="p-10 text-center">Authentication Error.</div>; 
-
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [view, setView] = useState('marketplace'); // Default view
-
-    // Fetch Real Products from your Backend
-    useEffect(() => {
-        fetch(`${API_URL}/products`)
-            .then(res => res.json())
-            .then(data => {
-                setProducts(data);
-                setLoading(false);
-            })
-            .catch(err => console.error("Error fetching products:", err));
-    }, []);
-
-    // Function to handle Buy Now logic
-    const handleBuyNow = async (product) => {
-        // ... (Order placement logic remains the same)
-        const orderData = {
-            buyerId: user.id, 
-            productId: product._id,
-            price: product.price,
-            deliveryFee: 1500 
-        };
-
+        const endpoint = isLogin ? '/login' : '/register';
         try {
-            const res = await fetch(`${API_URL}/orders`, {
+            const res = await fetch(`${API_URL}${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(orderData)
+                body: JSON.stringify(formData)
             });
-
             const data = await res.json();
-            if (res.ok) {
-                alert(`SUCCESS! Order ID ${data.order._id} Placed. Commission: ${data.yourCommission.toLocaleString()}`);
-            } else {
-                alert(`ERROR: ${data.error || 'Failed to place order.'}`);
-            }
 
-        } catch (error) {
-            alert('Network error placing order.');
+            if (res.ok) {
+                if (isLogin) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    onLogin(data.user);
+                } else {
+                    setSuccessMessage("Registration Successful! Please log in below.");
+                    setIsLogin(true);
+                }
+            } else {
+                setError(data.error || 'Something went wrong');
+            }
+        } catch (err) {
+            setError('Connection failed. Is the backend running?');
         }
     };
 
-    // --- Conditional Content Rendering ---
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
+            <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border-t-8 border-indigo-600">
+                <h2 className="text-3xl font-extrabold text-center text-indigo-800 mb-6">
+                    {isLogin ? 'Welcome Back' : 'Join SwiftLogi'}
+                </h2>
 
-    const renderContent = () => {
-        if (user.role === 'rider') {
-            return (
-                <div className="space-y-4">
-                    <h2 className="text-2xl font-bold mb-4 text-indigo-700">Rider Job Dashboard</h2>
-                    <p className="text-gray-500">Available Jobs (Mock Data)</p>
-                    {mockJobs.map(job => (
-                        <div key={job.id} className="bg-white p-4 rounded shadow border-l-4 border-green-500 flex justify-between items-center">
-                            <div>
-                                <p className="font-semibold">Pickup: {job.pickup}</p>
-                                <p className="text-sm">Distance: {job.distance}</p>
-                            </div>
-                            <Button color="green" onClick={() => alert(`Rider accepted Job #${job.id}`)}>
-                                Accept Job (₦{job.fee})
-                            </Button>
-                        </div>
-                    ))}
-                    <p className="mt-8 text-xs text-gray-400">Note: This is the view for unemployed youth to earn money.</p>
-                </div>
-            );
-        }
+                {successMessage && (
+                    <div className="mb-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded text-center font-bold animate-pulse">
+                        ✅ {successMessage}
+                    </div>
+                )}
 
-        if (user.role === 'seller' || user.role === 'buyer' || user.role === 'admin') {
-            return (
-                <div className="grid grid-cols-1 gap-6">
-                    <div className="bg-white p-6 rounded-xl shadow-lg border-t-4 border-yellow-500">
-                        <h3 className="text-xl font-bold mb-2">Seller/Admin Status</h3>
-                        <p className="text-3xl font-extrabold text-green-600">Active</p>
-                        <p className="text-sm text-gray-500 mt-2">View orders or manage listings.</p>
+                {error && (
+                    <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-center">
+                        ❌ {error}
+                    </div>
+                )}
+
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    {!isLogin && (
+                        <input
+                            type="text"
+                            placeholder="Full Name"
+                            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                            required
+                        />
+                    )}
+                    <input
+                        type="email"
+                        placeholder="Email Address"
+                        className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        required
+                    />
+                    
+                    {/* Password Field with Reveal Button */}
+                    <div className="relative">
+                        <input
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Password"
+                            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500"
+                            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                            required
+                        />
+                        <button 
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-3 text-gray-500 hover:text-indigo-600 font-medium text-xs"
+                        >
+                            {showPassword ? "HIDE" : "SHOW"}
+                        </button>
                     </div>
 
-                    <h2 className="text-2xl font-bold mb-4">Live Marketplace (All Roles Can View)</h2>
-                    
-                    {loading ? (
-                        <p className="text-center text-gray-500">Loading products from cloud...</p>
-                    ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {products.map(p => (
-                                <div key={p._id} className="bg-white p-4 rounded shadow hover:shadow-lg transition">
+                    {!isLogin && (
+                        <select 
+                            className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 bg-white"
+                            onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                        >
+                            <option value="buyer">Buyer (Place Orders)</option>
+                            <option value="seller">Seller (Sell Products)</option>
+                            <option value="rider">Rider (Deliver Goods)</option>
+                        </select>
+                    )}
+                    <Button type="submit" className="w-full py-3 text-lg">
+                        {isLogin ? 'Login to Dashboard' : 'Create My Account'}
+                    </Button>
+                </form>
+
+                <p className="mt-6 text-center text-gray-600">
+                    {isLogin ? "Don't have an account?" : "Already a member?"}
+                    <button 
+                        onClick={() => { setIsLogin(!isLogin); setError(''); setSuccessMessage(''); }}
+                        className="ml-2 text-indigo-600 font-bold hover:underline"
+                    >
+                        {isLogin ? 'Sign Up' : 'Log In'}
+                    </button>
+                </p>
+            </div>
+        </div>
+    );
+};
+
+// --- Order History Component ---
+const OrderHistory = ({ user, orders, loading }) => {
+    const titles = { buyer: 'Your Orders', seller: 'Sales History', admin: 'Platform Sales', rider: 'Delivery Jobs' };
+    if (loading) return <div className="p-4 text-center">Loading history...</div>;
+    return (
+        <div className="mt-8">
+            <h2 className="text-2xl font-bold mb-4 border-b pb-2 text-gray-700">{titles[user.role] || 'Orders'}</h2>
+            {orders.length === 0 ? <p className="text-gray-500 italic">No transactions found.</p> : 
+                orders.map(order => (
+                    <div key={order._id} className="bg-white p-4 rounded shadow border mb-3 flex justify-between items-center">
+                        <div>
+                            <h3 className="font-bold">{order.product?.name || 'Deleted Product'}</h3>
+                            <p className="text-sm text-gray-600">Total: ₦{(order.price + (order.deliveryFee || 0)).toLocaleString()}</p>
+                        </div>
+                        <span className={`px-2 py-1 rounded text-xs font-bold ${order.status === 'shipped' ? 'bg-blue-100 text-blue-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                            {order.status.toUpperCase()}
+                        </span>
+                    </div>
+                ))
+            }
+        </div>
+    );
+};
+
+// --- Main Marketplace/Rider App ---
+const LogisticsMarketplaceApp = ({ user, onLogout }) => {
+    const [products, setProducts] = useState([]);
+    const [orders, setOrders] = useState([]);
+    const [jobs, setJobs] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetchAll = useCallback(async () => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+        try {
+            const [pRes, oRes] = await Promise.all([
+                fetch(`${API_URL}/products`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                fetch(`${API_URL}/user/orders`, { headers: { 'Authorization': `Bearer ${token}` } })
+            ]);
+            setProducts(await pRes.json());
+            setOrders(await oRes.json());
+            if (user.role === 'rider' || user.role === 'admin') {
+                const jRes = await fetch(`${API_URL}/jobs`, { headers: { 'Authorization': `Bearer ${token}` } });
+                setJobs(await jRes.json());
+            }
+        } catch (e) { console.error(e); } finally { setLoading(false); }
+    }, [user.role]);
+
+    useEffect(() => { fetchAll(); }, [fetchAll]);
+
+    const handleBuy = async (product) => {
+        const token = localStorage.getItem('token');
+        const sellerId = product.seller?._id || product.seller;
+        const res = await fetch(`${API_URL}/orders`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ productId: product._id, price: product.price, sellerId, deliveryFee: 1500 })
+        });
+        if (res.ok) { alert("Order Placed Successfully!"); fetchAll(); }
+    };
+
+    const handleAccept = async (orderId) => {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`${API_URL}/jobs/${orderId}/accept`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.ok) { alert("Job Accepted Successfully!"); fetchAll(); }
+    };
+
+    return (
+        <div className="min-h-screen bg-gray-50 p-4">
+            <header className="bg-white p-4 mb-6 rounded shadow flex justify-between items-center">
+                <h1 className="text-2xl font-bold text-indigo-700">SwiftLogi</h1>
+                <div className="flex items-center space-x-4">
+                    <span className="bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-xs font-bold">{user.role.toUpperCase()}</span>
+                    <button onClick={onLogout} className="bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 transition text-sm">Logout</button>
+                </div>
+            </header>
+            
+            <main className="max-w-4xl mx-auto">
+                {user.role === 'rider' ? (
+                    <div>
+                        <h2 className="text-xl font-bold mb-4">Available Delivery Jobs</h2>
+                        {jobs.length === 0 ? <p className="bg-white p-4 rounded shadow italic">No jobs available.</p> : jobs.map(j => (
+                            <div key={j.orderId} className="bg-white p-4 rounded shadow mb-3 flex justify-between items-center">
+                                <div><p className="font-bold">{j.productName}</p><p className="text-sm text-green-600 font-bold">₦{j.riderPayout}</p></div>
+                                <Button onClick={() => handleAccept(j.orderId)}>Accept Job</Button>
+                            </div>
+                        ))}
+                        <OrderHistory user={user} orders={orders} loading={loading} />
+                    </div>
+                ) : (
+                    <div>
+                        <h2 className="text-xl font-bold mb-4">Marketplace</h2>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            {Array.isArray(products) && products.map(p => (
+                                <div key={p._id} className="bg-white p-4 rounded shadow">
                                     <h3 className="font-bold text-lg">{p.name}</h3>
-                                    <p className="text-sm text-gray-500 mb-2">{p.description}</p>
-                                    <div className="flex justify-between items-center mt-2">
-                                        <div>
-                                            <p className="text-xs text-gray-400">Seller: {p.seller?.name || 'Unknown'}</p>
-                                            <p className="text-indigo-600 font-bold text-xl">₦{p.price.toLocaleString()}</p>
-                                        </div>
-                                        <Button onClick={() => handleBuyNow(p)}>Buy Now</Button>
-                                    </div>
+                                    <p className="text-indigo-600 font-bold text-xl">₦{p.price.toLocaleString()}</p>
+                                    <Button className="mt-3 w-full" onClick={() => handleBuy(p)}>Buy Now</Button>
                                 </div>
                             ))}
                         </div>
-                    )}
-                </div>
-            );
-        }
-    };
-
-
-    return (
-        <div className="min-h-screen bg-gray-50 font-sans p-4">
-            <header className="bg-white shadow-sm p-4 mb-6 rounded-lg flex justify-between items-center">
-                <h1 className="text-2xl font-bold text-indigo-700">SwiftLogi</h1>
-                <span className="text-sm font-normal text-gray-600">Logged in as: **{user.role.toUpperCase()}**</span>
-            </header>
-
-            <main>
-                {renderContent()}
+                        <OrderHistory user={user} orders={orders} loading={loading} />
+                    </div>
+                )}
             </main>
         </div>
     );
 };
 
-export default App;
+export default function MainApp() {
+    const [user, setUser] = useState(null);
+    const [checking, setChecking] = useState(true);
+
+    useEffect(() => {
+        const savedUser = localStorage.getItem('user');
+        const token = localStorage.getItem('token');
+        if (savedUser && token) {
+            setUser(JSON.parse(savedUser));
+        }
+        setChecking(false);
+    }, []);
+
+    if (checking) return <div className="p-10 text-center">Initializing SwiftLogi...</div>;
+
+    return user ? (
+        <LogisticsMarketplaceApp user={user} onLogout={() => { localStorage.clear(); setUser(null); }} />
+    ) : (
+        <Auth onLogin={(u) => setUser(u)} />
+    );
+}

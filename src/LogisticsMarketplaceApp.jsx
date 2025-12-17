@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
-// VERSION 3.1 - ABSOLUTE CLOUD LOCK (MANUAL BYPASS)
-const RENDER_BACKEND = "https://swiftlogi-backend.onrender.com/api";
+// VERSION 4 - NO LOCALHOST FALLBACK
+const API_URL = "https://swiftlogi-backend.onrender.com/api";
 
 const Auth = ({ onLogin }) => {
     const [isLogin, setIsLogin] = useState(true);
@@ -13,8 +13,7 @@ const Auth = ({ onLogin }) => {
         e.preventDefault();
         setStatus({ type: 'info', msg: 'Connecting to Cloud...' });
         try {
-            const url = `${RENDER_BACKEND}${isLogin ? '/login' : '/register'}`;
-            const res = await fetch(url, {
+            const res = await fetch(`${API_URL}${isLogin ? '/login' : '/register'}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
@@ -22,51 +21,35 @@ const Auth = ({ onLogin }) => {
             const data = await res.json();
             if (res.ok) {
                 if (isLogin) {
-                    localStorage.setItem('token', data.token);
                     localStorage.setItem('user', JSON.stringify(data.user));
+                    localStorage.setItem('token', data.token);
                     onLogin(data.user);
                 } else {
-                    setStatus({ type: 'success', msg: '✅ Registration Success! Please Login.' });
+                    setStatus({ type: 'success', msg: '✅ Success! You can Login now.' });
                     setIsLogin(true);
                 }
-            } else { setStatus({ type: 'error', msg: data.error || 'Check details' }); }
-        } catch (err) { setStatus({ type: 'error', msg: '❌ Connection Refused. Ensure Backend is awake on Render.' }); }
+            } else { setStatus({ type: 'error', msg: data.error || 'Invalid Details' }); }
+        } catch (err) { setStatus({ type: 'error', msg: '❌ ERR: Connection Refused. Check Render status.' }); }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-indigo-900 p-4">
-            <div className="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-md border-b-8 border-indigo-500">
-                <div className="text-center mb-6">
-                    <h1 className="text-3xl font-black text-indigo-900 italic tracking-tighter">SWIFTLOGI v3.1</h1>
-                    <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold uppercase border border-green-200">Manual Sync Active</span>
-                </div>
-
-                {status.msg && (
-                    <div className={`mb-4 p-3 rounded-lg text-sm font-bold text-center ${status.type === 'success' ? 'bg-green-100 text-green-700' : status.type === 'info' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                        {status.msg}
-                    </div>
-                )}
-
+        <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+            <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md border-t-8 border-indigo-600">
+                <h1 className="text-3xl font-black text-center text-indigo-800 mb-6 italic uppercase">SwiftLogi v4</h1>
+                {status.msg && <div className={`mb-4 p-3 rounded font-bold text-center text-sm ${status.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{status.msg}</div>}
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {!isLogin && <input type="text" placeholder="Full Name" className="w-full p-3 border-2 border-gray-100 rounded-xl outline-none" onChange={e => setFormData({...formData, name: e.target.value})} required />}
-                    <input type="email" placeholder="Email Address" className="w-full p-3 border-2 border-gray-100 rounded-xl outline-none" onChange={e => setFormData({...formData, email: e.target.value})} required />
+                    {!isLogin && <input type="text" placeholder="Full Name" className="w-full p-3 border rounded" onChange={e => setFormData({...formData, name: e.target.value})} required />}
+                    <input type="email" placeholder="Email Address" className="w-full p-3 border rounded" onChange={e => setFormData({...formData, email: e.target.value})} required />
                     <div className="relative">
-                        <input type={showPassword ? "text" : "password"} placeholder="Password" className="w-full p-3 border-2 border-gray-100 rounded-xl outline-none" onChange={e => setFormData({...formData, password: e.target.value})} required />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3.5 text-[10px] font-black text-indigo-500 uppercase">{showPassword ? 'Hide' : 'Show'}</button>
+                        <input type={showPassword ? "text" : "password"} placeholder="Password" className="w-full p-3 border rounded" onChange={e => setFormData({...formData, password: e.target.value})} required />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3.5 text-xs font-black text-indigo-600 uppercase">{showPassword ? 'Show' : 'Hide'}</button>
                     </div>
-                    {!isLogin && (
-                        <select className="w-full p-3 border-2 border-gray-100 rounded-xl bg-white outline-none" onChange={e => setFormData({...formData, role: e.target.value})}>
-                            <option value="buyer">Buyer</option><option value="seller">Seller</option><option value="rider">Rider</option>
-                        </select>
-                    )}
-                    <button type="submit" className="w-full bg-indigo-600 text-white p-4 rounded-xl font-black uppercase hover:bg-indigo-700 transition tracking-widest">
-                        {isLogin ? 'Sign In' : 'Create Account'}
-                    </button>
+                    {!isLogin && <select className="w-full p-3 border rounded bg-white" onChange={e => setFormData({...formData, role: e.target.value})}><option value="buyer">Buyer</option><option value="seller">Seller</option><option value="rider">Rider</option></select>}
+                    <button type="submit" className="w-full bg-indigo-600 text-white p-3 rounded font-black uppercase shadow-lg">{isLogin ? 'Sign In' : 'Register'}</button>
                 </form>
-
-                <div className="mt-8 pt-4 border-t-2 border-gray-50 text-center">
-                    <button onClick={() => { setIsLogin(!isLogin); setStatus({type:'', msg:''}); }} className="text-indigo-600 font-black hover:underline uppercase text-xs tracking-widest">
-                        {isLogin ? "No account? Register Here" : "Have an account? Login Here"}
+                <div className="mt-6 text-center border-t pt-4">
+                    <button onClick={() => { setIsLogin(!isLogin); setStatus({type:'', msg:''}); }} className="text-indigo-600 font-black hover:underline uppercase text-sm">
+                        {isLogin ? "Need an account? Switch to Register" : "Have an account? Switch to Login"}
                     </button>
                 </div>
             </div>
@@ -74,21 +57,17 @@ const Auth = ({ onLogin }) => {
     );
 };
 
-const Marketplace = ({ user, onLogout }) => (
-    <div className="p-10 text-center bg-indigo-50 min-h-screen">
-        <div className="bg-white p-8 rounded-2xl shadow-xl max-w-sm mx-auto">
-            <h1 className="text-2xl font-black text-indigo-900">Logged In</h1>
-            <p className="text-gray-500 font-bold mt-2 uppercase text-xs">{user.name} | {user.role}</p>
-            <button onClick={onLogout} className="mt-6 bg-red-500 text-white px-6 py-2 rounded-full font-black text-xs hover:bg-red-600 transition">Logout</button>
-        </div>
-    </div>
-);
-
 export default function MainApp() {
     const [user, setUser] = useState(null);
     useEffect(() => { 
         const u = localStorage.getItem('user'); 
         if(u) setUser(JSON.parse(u)); 
     }, []);
-    return user ? <Marketplace user={user} onLogout={() => { localStorage.clear(); setUser(null); }} /> : <Auth onLogin={u => setUser(u)} />;
+    return user ? (
+        <div className="p-10 text-center">
+            <h1 className="text-2xl font-bold">Welcome {user.name}</h1>
+            <p className="font-bold text-indigo-600 uppercase mt-2">{user.role}</p>
+            <button onClick={() => { localStorage.clear(); setUser(null); }} className="bg-red-600 text-white p-2 rounded mt-6 font-bold uppercase shadow">Logout</button>
+        </div>
+    ) : <Auth onLogin={u => setUser(u)} />;
 }

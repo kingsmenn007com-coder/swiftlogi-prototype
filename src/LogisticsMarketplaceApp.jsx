@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 const API_URL = "https://swiftlogi-backend.onrender.com/api";
 
@@ -47,14 +47,15 @@ const Dashboard = ({ user, onLogout }) => {
     const [products, setProducts] = useState([]);
     const [userProducts, setUserProducts] = useState([]);
     const [jobs, setJobs] = useState([]);
-    const [activeFolder, setActiveFolder] = useState('marketplace');
+    const [activeFolder, setActiveFolder] = useState('inventory');
     const [searchTerm, setSearchTerm] = useState("");
-    const [newProd, setNewProd] = useState({ name: '', price: '', location: '' });
+    const [newProd, setNewProd] = useState({ name: '', price: '', location: '', image: '' });
+    const fileInputRef = useRef(null);
 
     const fetchAll = useCallback(async () => {
         const [pRes, upRes, jRes] = await Promise.all([
             fetch(`${API_URL}/products`),
-            fetch(`${API_URL}/api/user/products/${user.id}`),
+            fetch(`${API_URL}/user/products/${user.id}`),
             fetch(`${API_URL}/jobs`)
         ]);
         setProducts(await pRes.json());
@@ -64,6 +65,15 @@ const Dashboard = ({ user, onLogout }) => {
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
 
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => setNewProd({ ...newProd, image: reader.result });
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleUpload = async (e) => {
         e.preventDefault();
         const res = await fetch(`${API_URL}/products`, {
@@ -71,20 +81,22 @@ const Dashboard = ({ user, onLogout }) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ ...newProd, seller: user.id, sellerName: user.name })
         });
-        if (res.ok) { alert("Successfully Uploaded to Your Dashboard!"); fetchAll(); setActiveFolder('dashboard'); }
+        if (res.ok) { alert("Successfully Uploaded!"); fetchAll(); setActiveFolder('inventory'); setNewProd({name:'', price:'', location:'', image:''}); }
     };
 
     return (
         <div className="min-h-screen flex bg-gray-100 font-sans">
-            {/* SIDEBAR NAVIGATION (Folder Style) */}
+            {/* SIDEBAR */}
             <aside className="w-72 bg-indigo-900 text-white flex flex-col p-6 space-y-8">
                 <div>
                     <h1 className="text-3xl font-black italic uppercase italic tracking-tighter">SwiftLogi</h1>
                     <p className="text-[10px] font-bold text-indigo-300 uppercase mt-1 tracking-widest">WELCOME, {user.name}</p>
                 </div>
                 <nav className="flex-grow space-y-2">
-                    <button onClick={() => setActiveFolder('marketplace')} className={`flex items-center gap-3 w-full p-4 rounded-xl font-bold text-sm ${activeFolder === 'marketplace' ? 'bg-indigo-600' : 'opacity-60 hover:bg-indigo-800'}`}>🛒 Marketplace</button>
-                    <button onClick={() => setActiveFolder('dashboard')} className={`flex items-center gap-3 w-full p-4 rounded-xl font-bold text-sm ${activeFolder === 'dashboard' ? 'bg-indigo-600' : 'opacity-60 hover:bg-indigo-800'}`}>📁 Dashboard (Inventory)</button>
+                    <div className="space-y-1">
+                        <button onClick={() => setActiveFolder('inventory')} className={`flex items-center gap-3 w-full p-4 rounded-xl font-bold text-sm ${activeFolder === 'inventory' ? 'bg-indigo-600' : 'opacity-60 hover:bg-indigo-800'}`}>📁 Dashboard (Inventory)</button>
+                        <button onClick={() => setActiveFolder('marketplace')} className="flex items-center gap-3 w-full p-4 pl-10 rounded-xl font-bold text-xs opacity-60 hover:bg-indigo-800 transition">🛒 Marketplace</button>
+                    </div>
                     {user.role === 'rider' && <button onClick={() => setActiveFolder('rider')} className={`flex items-center gap-3 w-full p-4 rounded-xl font-bold text-sm ${activeFolder === 'rider' ? 'bg-indigo-600' : 'opacity-60 hover:bg-indigo-800'}`}>🏍️ Rider Feed</button>}
                     <button className="flex items-center gap-3 w-full p-4 rounded-xl font-bold text-sm opacity-60 hover:bg-indigo-800">📍 Tracking</button>
                     <button className="flex items-center gap-3 w-full p-4 rounded-xl font-bold text-sm opacity-60 hover:bg-indigo-800">⚙️ Settings</button>
@@ -92,7 +104,7 @@ const Dashboard = ({ user, onLogout }) => {
                 <button onClick={onLogout} className="bg-red-600 p-4 rounded-xl font-black uppercase text-xs shadow-lg active:scale-95 transition">Logout</button>
             </aside>
 
-            {/* MAIN CONTENT AREA */}
+            {/* MAIN CONTENT */}
             <main className="flex-grow flex flex-col overflow-hidden">
                 <header className="bg-white p-6 shadow-sm flex items-center border-b px-10">
                     <div className="relative w-full max-w-xl">
@@ -106,17 +118,20 @@ const Dashboard = ({ user, onLogout }) => {
                         <h2 className="text-2xl font-black text-gray-800 uppercase italic">WELCOME, {user.name.toUpperCase()}</h2>
                     </div>
 
-                    {activeFolder === 'dashboard' ? (
-                        /* DASHBOARD / PERSONAL INVENTORY FOLDER */
+                    {activeFolder === 'inventory' ? (
                         <section className="space-y-6">
                             <div className="flex justify-between items-center bg-white p-6 rounded-3xl shadow-sm">
-                                <h3 className="text-xl font-black uppercase text-indigo-800 tracking-tighter">Your Personal Inventory</h3>
-                                <button onClick={() => setActiveFolder('upload')} className="bg-green-600 text-white px-6 py-2 rounded-xl font-black text-xs uppercase shadow-lg">+ UPLOAD NEW ITEM</button>
+                                <h3 className="text-xl font-black uppercase text-indigo-800 tracking-tighter font-black">YOUR PERSONAL INVENTORY</h3>
+                                <button onClick={() => setActiveFolder('upload')} className="bg-green-600 text-white px-6 py-2 rounded-xl font-black text-xs uppercase shadow-lg hover:bg-green-700 transition">+ UPLOAD NEW ITEM</button>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {userProducts.length === 0 ? <p className="col-span-full text-center py-20 bg-white rounded-3xl border-2 border-dashed italic text-gray-400">Your inventory is empty. Upload an item to see it here.</p> : userProducts.map(p => (
+                                {userProducts.length === 0 ? (
+                                    <button onClick={() => setActiveFolder('upload')} className="col-span-full text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-200 italic text-gray-400 hover:bg-gray-50 transition">
+                                        Your inventory is empty. Upload an item to see it here.
+                                    </button>
+                                ) : userProducts.map(p => (
                                     <div key={p._id} className="bg-white p-6 rounded-3xl shadow-md border-t-4 border-green-500">
-                                        <div className="w-full h-32 bg-gray-50 rounded-2xl mb-4 flex items-center justify-center font-bold text-gray-300 italic">Inventory Photo</div>
+                                        <img src={p.image || "https://via.placeholder.com/150"} alt={p.name} className="w-full h-40 object-contain rounded-2xl mb-4 bg-gray-50" />
                                         <h4 className="font-black uppercase text-sm text-gray-800">{p.name}</h4>
                                         <p className="text-indigo-600 font-black text-lg">₦{p.price.toLocaleString()}</p>
                                     </div>
@@ -124,46 +139,53 @@ const Dashboard = ({ user, onLogout }) => {
                             </div>
                         </section>
                     ) : activeFolder === 'upload' ? (
-                        /* UPLOAD ITEM FOLDER */
                         <section className="bg-white p-10 rounded-3xl shadow-xl border-t-8 border-green-500 max-w-2xl mx-auto">
-                            <h3 className="text-xl font-black uppercase text-indigo-800 mb-6 tracking-tighter">Upload Item to Your Dashboard</h3>
-                            <form onSubmit={handleUpload} className="space-y-4">
-                                <input type="text" placeholder="Product Name" className="w-full p-4 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-400" onChange={e => setNewProd({...newProd, name: e.target.value})} required />
-                                <input type="number" placeholder="Price (₦)" className="w-full p-4 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-400" onChange={e => setNewProd({...newProd, price: e.target.value})} required />
-                                <input type="text" placeholder="Pickup Address / City" className="w-full p-4 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-400" onChange={e => setNewProd({...newProd, location: e.target.value})} required />
-                                <button type="submit" className="w-full bg-indigo-600 text-white p-5 rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 transition">PUBLISH TO MY DASHBOARD</button>
-                            </form>
+                            <h3 className="text-xl font-black uppercase text-indigo-800 mb-6 tracking-tighter">UPLOAD ITEM TO YOUR DASHBOARD</h3>
+                            <div className="space-y-6">
+                                <input type="file" hidden ref={fileInputRef} onChange={handleFileChange} accept="image/*" />
+                                <div onClick={() => fileInputRef.current.click()} className="bg-gray-50 p-10 border-2 border-dashed border-gray-200 rounded-3xl text-center text-gray-400 font-bold italic cursor-pointer hover:bg-gray-100 transition overflow-hidden">
+                                    {newProd.image ? (
+                                        <img src={newProd.image} alt="Preview" className="max-h-40 mx-auto rounded-xl shadow-md" />
+                                    ) : "Click to open folders and select product images"}
+                                </div>
+                                
+                                {newProd.image && (
+                                    <form onSubmit={handleUpload} className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                        <input type="text" placeholder="Product Name" className="w-full p-4 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-400" onChange={e => setNewProd({...newProd, name: e.target.value})} required />
+                                        <input type="number" placeholder="Price (₦)" className="w-full p-4 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-400" onChange={e => setNewProd({...newProd, price: e.target.value})} required />
+                                        <input type="text" placeholder="Pickup Address / City" className="w-full p-4 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-400" onChange={e => setNewProd({...newProd, location: e.target.value})} required />
+                                        <button type="submit" className="w-full bg-indigo-600 text-white p-5 rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 transition">PUBLISH TO MY DASHBOARD</button>
+                                    </form>
+                                )}
+                            </div>
                         </section>
                     ) : activeFolder === 'rider' ? (
-                        /* RIDER FEED WITH REJECT BUTTON */
                         <section className="space-y-6">
                             <div className="bg-white p-6 rounded-3xl border-b-4 border-blue-500 shadow-sm"><h3 className="text-lg font-black text-blue-600 uppercase italic">RIDER STATUS: <span className="text-green-500">AVAILABLE</span></h3></div>
-                            <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest">Available Delivery Jobs</h3>
                             {jobs.map(j => (
                                 <div key={j._id} className="bg-white p-8 rounded-3xl shadow-md border-l-4 border-green-500 flex justify-between items-center">
                                     <div>
-                                        <p className="text-[10px] font-black text-indigo-400 mb-1 uppercase tracking-tighter">ORDER ID: {j._id.substring(0,8)}</p>
+                                        <p className="text-[10px] font-black text-indigo-400 mb-1 uppercase tracking-tighter italic">ORDER ID: {j._id.substring(0,8)}</p>
                                         <p className="font-black text-gray-800 text-xl uppercase italic">PACKAGE</p>
                                         <p className="text-sm font-bold text-gray-500 mt-2 italic">📍 Pickup: {j.items?.[0]?.location || 'Shop Admin'} | 🏠 Dropoff: Client Address</p>
                                         <p className="text-lg font-black text-green-600 mt-2 italic tracking-tighter">Payout: ₦1,500</p>
                                     </div>
                                     <div className="flex gap-3">
-                                        <button onClick={() => alert("Job Rejected Successfully")} className="bg-red-100 text-red-600 px-8 py-3 rounded-2xl font-black uppercase text-xs shadow-sm hover:bg-red-200 transition">Reject</button>
-                                        <button onClick={() => alert("Job Accepted!")} className="bg-indigo-600 text-white px-10 py-3 rounded-2xl font-black uppercase text-xs shadow-xl active:scale-95 transition">Accept Job</button>
+                                        <button onClick={() => alert("Rejected")} className="bg-red-100 text-red-600 px-8 py-3 rounded-2xl font-black uppercase text-xs shadow-sm">Reject</button>
+                                        <button className="bg-indigo-600 text-white px-10 py-3 rounded-2xl font-black uppercase text-xs shadow-xl transition">Accept Job</button>
                                     </div>
                                 </div>
                             ))}
                         </section>
                     ) : (
-                        /* GLOBAL MARKETPLACE FOLDER */
                         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                             {products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).map(p => (
                                 <div key={p._id} className="bg-white p-8 rounded-3xl shadow hover:shadow-2xl transition border-t-4 border-indigo-500">
-                                    <div className="w-full h-44 bg-gray-50 rounded-2xl mb-4 flex items-center justify-center font-bold text-gray-300 italic text-xs">Product Image</div>
+                                    <img src={p.image || "https://via.placeholder.com/150"} alt={p.name} className="w-full h-44 object-contain rounded-2xl mb-4 bg-gray-50" />
                                     <h3 className="font-black text-gray-800 text-sm uppercase mb-1 tracking-tight">{p.name}</h3>
                                     <p className="text-[10px] text-gray-400 font-black mb-4 uppercase tracking-widest">Seller: {p.sellerName || 'Verified User'}</p>
                                     <p className="text-2xl font-black text-indigo-600 italic tracking-tighter">₦{p.price.toLocaleString()}</p>
-                                    <button className="mt-6 w-full bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl active:scale-95 transition">Buy Now / Add To Cart</button>
+                                    <button className="mt-6 w-full bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl transition">Buy Now / Add To Cart</button>
                                 </div>
                             ))}
                         </section>

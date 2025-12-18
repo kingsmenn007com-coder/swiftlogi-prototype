@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 
 const API_URL = "https://swiftlogi-backend.onrender.com/api";
 
-// --- Multi-Purpose Password Input ---
 const PasswordInput = ({ value, onChange, placeholder }) => {
     const [show, setShow] = useState(false);
     return (
@@ -23,45 +22,45 @@ const PasswordInput = ({ value, onChange, placeholder }) => {
 const Auth = ({ onLogin }) => {
     const [isLogin, setIsLogin] = useState(true);
     const [formData, setFormData] = useState({ name: '', email: '', password: '', role: 'user' });
-    const [status, setStatus] = useState({ type: '', msg: '' });
+    const [msg, setMsg] = useState('');
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        try {
-            const res = await fetch(`${API_URL}${isLogin ? '/login' : '/register'}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(formData)
-            });
-            const data = await res.json();
-            if (res.ok) {
-                if (isLogin) {
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    onLogin(data.user);
-                } else { setStatus({ type: 'success', msg: '✅ Ready! Please Login.' }); setIsLogin(true); }
-            } else { setStatus({ type: 'error', msg: data.error }); }
-        } catch (err) { setStatus({ type: 'error', msg: 'Connection Error' }); }
+        const res = await fetch(`${API_URL}${isLogin ? '/login' : '/register'}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formData)
+        });
+        const data = await res.json();
+        if (res.ok) {
+            if (isLogin) {
+                localStorage.setItem('user', JSON.stringify(data.user));
+                onLogin(data.user);
+            } else { setMsg('✅ Success! Log in now.'); setIsLogin(true); }
+        } else { setMsg('❌ ' + data.error); }
     };
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
             <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border-t-8 border-indigo-600">
                 <h1 className="text-3xl font-black text-center text-indigo-800 mb-6 italic uppercase">SwiftLogi V7</h1>
-                {status.msg && <div className={`mb-4 p-3 rounded font-bold text-center text-sm ${status.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{status.msg}</div>}
+                {msg && <div className="mb-4 p-3 rounded font-bold text-center text-sm bg-indigo-50 text-indigo-700">{msg}</div>}
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    {!isLogin && <input type="text" placeholder="Full Name" className="w-full p-3 border rounded-xl outline-none" onChange={e => setFormData({...formData, name: e.target.value})} required />}
-                    <input type="email" placeholder="Email" className="w-full p-3 border rounded-xl outline-none" onChange={e => setFormData({...formData, email: e.target.value})} required />
+                    {!isLogin && <input type="text" placeholder="Full Name" className="w-full p-3 border rounded-xl" onChange={e => setFormData({...formData, name: e.target.value})} required />}
+                    <input type="email" placeholder="Email" className="w-full p-3 border rounded-xl" onChange={e => setFormData({...formData, email: e.target.value})} required />
                     <PasswordInput onChange={e => setFormData({...formData, password: e.target.value})} placeholder="Password" />
-                    {!isLogin && <select className="w-full p-3 border rounded-xl bg-white font-bold" onChange={e => setFormData({...formData, role: e.target.value})}>
-                        <option value="user">I want to Buy/Sell</option>
-                        <option value="rider">I want to Deliver (Rider)</option>
-                    </select>}
-                    <button type="submit" className="w-full bg-indigo-600 text-white p-3 rounded-xl font-bold uppercase shadow-lg tracking-widest hover:bg-indigo-700">
+                    {!isLogin && (
+                        <select className="w-full p-3 border rounded-xl bg-white font-bold" onChange={e => setFormData({...formData, role: e.target.value})}>
+                            <option value="user">I want to Buy/Sell</option>
+                            <option value="rider">I want to Deliver (Rider)</option>
+                        </select>
+                    )}
+                    <button type="submit" className="w-full bg-indigo-600 text-white p-3 rounded-xl font-bold uppercase shadow-lg">
                         {isLogin ? 'Sign In' : 'Join Network'}
                     </button>
                 </form>
                 <button onClick={() => setIsLogin(!isLogin)} className="w-full mt-6 text-xs text-indigo-600 font-bold uppercase hover:underline">
-                    {isLogin ? "No account? Register" : "Have an account? Login"}
+                    {isLogin ? "No account? Register" : "Already a member? Login"}
                 </button>
             </div>
         </div>
@@ -73,9 +72,14 @@ const Dashboard = ({ user, onLogout }) => {
     const [orders, setOrders] = useState([]);
     const [cart, setCart] = useState([]);
     const [showCart, setShowCart] = useState(false);
+    const [showUpload, setShowUpload] = useState(false);
+    const [newProduct, setNewProduct] = useState({ name: '', price: '', description: '' });
 
     const fetchAll = useCallback(async () => {
-        const [pRes, oRes] = await Promise.all([fetch(`${API_URL}/products`), fetch(`${API_URL}/user/orders/${user.id}`)]);
+        const [pRes, oRes] = await Promise.all([
+            fetch(`${API_URL}/products`),
+            fetch(`${API_URL}/user/orders/${user.id}`)
+        ]);
         setProducts(await pRes.json());
         setOrders(await oRes.json());
     }, [user.id]);
@@ -84,11 +88,20 @@ const Dashboard = ({ user, onLogout }) => {
 
     const addToCart = (product) => {
         setCart(prev => {
-            const exists = prev.find(item => item._id === product._id);
-            if (exists) return prev.map(item => item._id === product._id ? {...item, quantity: item.quantity + 1} : item);
+            const exists = prev.find(i => i._id === product._id);
+            if (exists) return prev.map(i => i._id === product._id ? {...i, quantity: i.quantity + 1} : i);
             return [...prev, {...product, quantity: 1}];
         });
-        setShowCart(true);
+    };
+
+    const handleUpload = async (e) => {
+        e.preventDefault();
+        const res = await fetch(`${API_URL}/products`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({...newProduct, sellerId: user.id, sellerName: user.name})
+        });
+        if (res.ok) { alert("🚀 Product Live Across Nigeria!"); setShowUpload(false); fetchAll(); }
     };
 
     const handleCheckout = async () => {
@@ -97,71 +110,89 @@ const Dashboard = ({ user, onLogout }) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ items: cart, buyerId: user.id })
         });
-        if (res.ok) { alert("✅ Orders Placed Successfully!"); setCart([]); setShowCart(false); fetchAll(); }
+        if (res.ok) { alert("📦 Orders Placed!"); setCart([]); setShowCart(false); fetchAll(); }
     };
 
     return (
         <div className="min-h-screen bg-gray-50 p-4">
-            <header className="bg-white p-4 mb-6 rounded-xl shadow-sm flex justify-between items-center max-w-5xl mx-auto">
+            <header className="bg-white p-4 mb-6 rounded-xl shadow-sm flex justify-between items-center max-w-6xl mx-auto">
                 <h1 className="text-2xl font-black text-indigo-700 italic">SWIFTLOGI</h1>
                 <div className="flex items-center gap-4">
-                    <button onClick={() => setShowCart(!showCart)} className="relative p-2 bg-indigo-50 rounded-full text-indigo-600 font-bold">
-                        🛒 {cart.length > 0 && <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] px-1.5 rounded-full">{cart.reduce((a, b) => a + b.quantity, 0)}</span>}
+                    <button onClick={() => setShowCart(!showCart)} className="bg-indigo-100 p-2 rounded-lg text-indigo-700 font-black text-xs uppercase">
+                        🛒 Cart ({cart.reduce((a, b) => a + b.quantity, 0)})
                     </button>
-                    <button onClick={onLogout} className="bg-red-600 text-white px-3 py-1 rounded-lg text-xs font-bold shadow hover:bg-red-700">LOGOUT</button>
+                    {user.role === 'user' && (
+                        <button onClick={() => setShowUpload(true)} className="bg-green-600 text-white px-3 py-1 rounded-lg text-xs font-black uppercase">
+                            + Sell Item
+                        </button>
+                    )}
+                    <button onClick={onLogout} className="bg-red-600 text-white px-3 py-1 rounded-lg text-xs font-bold shadow">Logout</button>
                 </div>
             </header>
 
-            <main className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 space-y-8">
-                    <section>
-                        <h3 className="text-sm font-black text-gray-500 uppercase mb-4 tracking-widest">Available Goods</h3>
-                        <div className="grid md:grid-cols-2 gap-4">
-                            {products.map(p => (
-                                <div key={p._id} className="bg-white p-6 rounded-2xl shadow hover:shadow-md transition border-t-4 border-indigo-500">
-                                    <h3 className="font-black text-gray-800">{p.name}</h3>
-                                    <p className="text-2xl font-black text-indigo-600">₦{p.price.toLocaleString()}</p>
-                                    <button onClick={() => addToCart(p)} className="mt-4 w-full bg-indigo-600 text-white py-2 rounded-xl font-bold uppercase text-[10px] tracking-widest shadow-lg">Add to Cart</button>
-                                </div>
-                            ))}
-                        </div>
+            <main className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <div className="lg:col-span-3 space-y-6">
+                    {/* Marketplace Section */}
+                    <section className="grid md:grid-cols-3 gap-4">
+                        {products.map(p => (
+                            <div key={p._id} className="bg-white p-5 rounded-2xl shadow-sm border-t-4 border-indigo-500">
+                                <h3 className="font-black text-gray-800">{p.name}</h3>
+                                <p className="text-xs text-gray-400 mb-2 italic">Seller: {p.sellerName || 'Verified Seller'}</p>
+                                <p className="text-xl font-black text-indigo-600">₦{Number(p.price).toLocaleString()}</p>
+                                <button onClick={() => addToCart(p)} className="mt-4 w-full bg-indigo-600 text-white py-2 rounded-xl font-bold uppercase text-[10px]">Add to Cart</button>
+                            </div>
+                        ))}
                     </section>
                 </div>
 
-                <aside className="space-y-8">
+                <div className="space-y-6">
+                    {/* Cart Section */}
                     {showCart && (
-                        <div className="bg-white p-6 rounded-2xl shadow-xl border-2 border-indigo-100">
-                            <h3 className="font-black text-indigo-700 uppercase text-xs mb-4">Your Shopping Cart</h3>
-                            {cart.length === 0 ? <p className="text-xs text-gray-400">Cart is empty</p> : (
+                        <div className="bg-white p-4 rounded-2xl shadow-xl border-2 border-indigo-100">
+                            <h3 className="font-black text-indigo-700 uppercase text-xs mb-3">Shopping Cart</h3>
+                            {cart.length === 0 ? <p className="text-[10px] text-gray-400">Cart is empty</p> : (
                                 <>
-                                    {cart.map(item => (
-                                        <div key={item._id} className="flex justify-between items-center text-xs mb-2 pb-2 border-b">
-                                            <span>{item.name} (x{item.quantity})</span>
-                                            <span className="font-bold">₦{(item.price * item.quantity).toLocaleString()}</span>
+                                    {cart.map(i => (
+                                        <div key={i._id} className="flex justify-between text-[10px] mb-2 border-b pb-1">
+                                            <span>{i.name} (x{i.quantity})</span>
+                                            <span className="font-bold">₦{(i.price * i.quantity).toLocaleString()}</span>
                                         </div>
                                     ))}
-                                    <div className="mt-4 pt-4 border-t-2">
-                                        <div className="flex justify-between font-black text-sm mb-4">
-                                            <span>Total:</span>
-                                            <span>₦{cart.reduce((acc, item) => acc + (item.price * item.quantity), 0).toLocaleString()}</span>
-                                        </div>
-                                        <button onClick={handleCheckout} className="w-full bg-green-600 text-white py-3 rounded-xl font-black uppercase text-xs shadow-lg">Checkout Now</button>
-                                    </>
+                                    <button onClick={handleCheckout} className="w-full bg-green-600 text-white py-2 mt-2 rounded-lg font-black text-[10px] uppercase">Checkout</button>
+                                </>
                             )}
                         </div>
                     )}
 
-                    <section>
-                        <h3 className="text-xs font-black text-gray-500 uppercase mb-4 tracking-widest">Personal History</h3>
+                    <section className="bg-white p-4 rounded-2xl shadow-sm">
+                        <h3 className="font-black text-gray-500 uppercase text-xs mb-3">Your Activity</h3>
                         {orders.map(o => (
-                            <div key={o._id} className="bg-white p-4 rounded-xl shadow-sm mb-2 flex justify-between border-l-4 border-indigo-400 text-xs">
-                                <div><p className="font-bold">{o.product?.name} (x{o.quantity || 1})</p><p className="font-black text-indigo-500 uppercase text-[8px]">{o.status}</p></div>
-                                <span className="font-bold">₦{(o.price * (o.quantity || 1)).toLocaleString()}</span>
+                            <div key={o._id} className="text-[10px] mb-2 p-2 bg-gray-50 rounded border-l-4 border-indigo-400">
+                                <p className="font-bold">{o.product?.name} (x{o.quantity})</p>
+                                <p className="font-black uppercase text-indigo-500">{o.status}</p>
                             </div>
                         ))}
                     </section>
-                </aside>
+                </div>
             </main>
+
+            {/* Seller Upload Modal */}
+            {showUpload && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+                    <div className="bg-white p-6 rounded-2xl max-w-md w-full">
+                        <h2 className="text-xl font-black text-indigo-700 mb-4 uppercase">Upload Product</h2>
+                        <form onSubmit={handleUpload} className="space-y-4">
+                            <input type="text" placeholder="Product Name" className="w-full p-3 border rounded-xl" onChange={e => setNewProduct({...newProduct, name: e.target.value})} required />
+                            <input type="number" placeholder="Price (₦)" className="w-full p-3 border rounded-xl" onChange={e => setNewProduct({...newProduct, price: e.target.value})} required />
+                            <textarea placeholder="Description" className="w-full p-3 border rounded-xl" onChange={e => setNewProduct({...newProduct, description: e.target.value})} required />
+                            <div className="flex gap-2">
+                                <button type="submit" className="flex-1 bg-indigo-600 text-white py-3 rounded-xl font-black uppercase text-xs">Publish Now</button>
+                                <button type="button" onClick={() => setShowUpload(false)} className="flex-1 bg-gray-200 text-gray-600 py-3 rounded-xl font-black uppercase text-xs">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

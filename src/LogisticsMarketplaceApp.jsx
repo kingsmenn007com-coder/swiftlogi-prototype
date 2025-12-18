@@ -35,7 +35,7 @@ const Auth = ({ onLogin }) => {
                     {!isLogin && <select className="w-full p-3 border rounded-lg bg-white font-bold" onChange={e => setFormData({...formData, role: e.target.value})}>
                         <option value="user">User (Buy/Sell)</option><option value="rider">Rider</option>
                     </select>}
-                    <button type="submit" className="w-full bg-indigo-600 text-white p-3 rounded-lg font-bold uppercase shadow-lg tracking-widest">Enter Dashboard</button>
+                    <button type="submit" className="w-full bg-indigo-600 text-white p-3 rounded-lg font-bold uppercase shadow-lg">Enter Dashboard</button>
                 </form>
                 <button onClick={() => setIsLogin(!isLogin)} className="w-full mt-4 text-[10px] font-bold uppercase text-indigo-600 underline tracking-widest">{isLogin ? "Register" : "Login"}</button>
             </div>
@@ -67,6 +67,7 @@ const Dashboard = ({ user, onLogout }) => {
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
 
+    // FIX 1: Functional "Add to Cart" Logic
     const addToCart = (p) => {
         setCart(prev => {
             const exists = prev.find(item => item._id === p._id);
@@ -120,7 +121,7 @@ const Dashboard = ({ user, onLogout }) => {
                         <button onClick={() => setActiveFolder('inventory')} className={`flex items-center gap-3 w-full p-4 rounded-xl font-bold text-sm ${activeFolder === 'inventory' ? 'bg-indigo-600 shadow-lg' : 'opacity-60 hover:bg-indigo-800'}`}>📁 Dashboard (Inventory)</button>
                         <button onClick={() => setActiveFolder('marketplace')} className={`flex items-center gap-3 w-full p-4 pl-10 rounded-xl font-bold text-xs ${activeFolder === 'marketplace' ? 'bg-indigo-600 shadow-lg' : 'opacity-60 hover:bg-indigo-800'}`}>🛒 Marketplace</button>
                     </div>
-                    {user.role === 'rider' && <button onClick={() => setActiveFolder('rider')} className={`flex items-center gap-3 w-full p-4 rounded-xl font-bold text-sm ${activeFolder === 'rider' ? 'bg-indigo-600' : 'opacity-60 hover:bg-indigo-800'}`}>🏍️ Rider Feed</button>}
+                    {user.role === 'rider' && <button onClick={() => setActiveFolder('rider')} className={`flex items-center gap-3 w-full p-4 rounded-xl font-bold text-sm ${activeFolder === 'rider' ? 'bg-indigo-600 shadow-lg' : 'opacity-60 hover:bg-indigo-800'}`}>🏍️ Rider Feed</button>}
                     <button className="flex items-center gap-3 w-full p-4 rounded-xl font-bold text-sm opacity-60 hover:bg-indigo-800">📍 Tracking</button>
                     <button className="flex items-center gap-3 w-full p-4 rounded-xl font-bold text-sm opacity-60 hover:bg-indigo-800">⚙️ Settings</button>
                 </nav>
@@ -128,25 +129,23 @@ const Dashboard = ({ user, onLogout }) => {
             </aside>
 
             <main className="flex-grow flex flex-col overflow-hidden">
-                <header className="bg-white p-6 shadow-sm flex items-center justify-between border-b px-10 relative">
+                <header className="bg-white p-6 shadow-sm flex items-center justify-between border-b px-10">
                     <div className="relative w-full max-w-xl">
                         <input type="text" placeholder="Search products, prices, sellers..." className="w-full p-3 pl-12 bg-gray-100 rounded-2xl outline-none text-sm font-medium" onChange={e => setSearchTerm(e.target.value)} />
                         <span className="absolute left-4 top-3.5 opacity-30 text-lg">🔍</span>
                     </div>
 
-                    {/* BLACK MARKER PLACEMENT: Cart Icon on top far right */}
-                    <div className="flex items-center">
-                        {user.role === 'user' && (
-                            <button onClick={() => setShowCart(true)} className="relative bg-white p-3 rounded-full hover:bg-indigo-50 transition shadow-sm border-2 border-indigo-500 ml-4">
-                                <span className="text-2xl">🛒</span>
-                                {cart.length > 0 && (
-                                    <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg border-2 border-white">
-                                        {cart.length}
-                                    </span>
-                                )}
-                            </button>
-                        )}
-                    </div>
+                    {/* FIX 2: Cart Icon at Black Marker Location (Far Top Right) */}
+                    {user.role === 'user' && (
+                        <button onClick={() => setShowCart(true)} className="relative bg-white p-3 rounded-full hover:bg-indigo-50 transition shadow-sm border-2 border-indigo-500 ml-4">
+                            <span className="text-2xl">🛒</span>
+                            {cart.length > 0 && (
+                                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-lg border-2 border-white">
+                                    {cart.length}
+                                </span>
+                            )}
+                        </button>
+                    )}
                 </header>
 
                 <div className="p-10 overflow-y-auto space-y-8">
@@ -165,7 +164,7 @@ const Dashboard = ({ user, onLogout }) => {
                                     <div key={p._id} className="bg-white p-6 rounded-3xl shadow-md border-t-4 border-green-500">
                                         <img src={p.image} className="w-full h-40 object-contain rounded-2xl mb-4 bg-gray-50" />
                                         <h4 className="font-black uppercase text-sm text-gray-800">{p.name}</h4>
-                                        <p className="text-indigo-600 font-black text-lg">₦{p.price.toLocaleString()}</p>
+                                        <p className="text-indigo-600 font-black text-lg font-mono">₦{p.price.toLocaleString()}</p>
                                     </div>
                                 ))}
                             </div>
@@ -188,18 +187,18 @@ const Dashboard = ({ user, onLogout }) => {
                         </section>
                     ) : activeFolder === 'rider' ? (
                         <section className="space-y-6">
-                            <div className="bg-white p-6 rounded-3xl border-b-4 border-blue-500 shadow-sm"><h3 className="text-lg font-black text-blue-600 uppercase italic">RIDER STATUS: <span className="text-green-500 font-black italic uppercase">AVAILABLE</span></h3></div>
+                            <div className="bg-white p-6 rounded-3xl border-b-4 border-blue-500 shadow-sm"><h3 className="text-lg font-black text-blue-600 uppercase italic font-black">RIDER STATUS: <span className="text-green-500">AVAILABLE</span></h3></div>
                             {jobs.map(j => (
                                 <div key={j._id} className="bg-white p-8 rounded-3xl shadow-md border-l-4 border-green-500 flex justify-between items-center">
                                     <div>
-                                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-tighter italic">ORDER ID: {j._id.substring(0,8)}</p>
-                                        <p className="font-black text-gray-800 text-xl uppercase italic">PACKAGE</p>
-                                        <p className="text-sm font-bold text-gray-500 mt-2 italic">📍 Pickup: {j.items?.[0]?.location || 'Shop Admin'}</p>
-                                        <p className="text-lg font-black text-green-600 mt-2 italic tracking-tighter">Payout: ₦1,500</p>
+                                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-tighter italic font-black">ORDER ID: {j._id.substring(0,8)}</p>
+                                        <p className="font-black text-gray-800 text-xl uppercase italic font-black">PACKAGE</p>
+                                        <p className="text-sm font-bold text-gray-500 mt-2 italic font-black">📍 Pickup: {j.items?.[0]?.location || 'Shop Admin'}</p>
+                                        <p className="text-lg font-black text-green-600 mt-2 italic tracking-tighter font-black">Payout: ₦1,500</p>
                                     </div>
                                     <div className="flex gap-3">
-                                        <button className="bg-red-100 text-red-600 px-8 py-3 rounded-2xl font-black uppercase text-xs shadow-sm">Reject</button>
-                                        <button className="bg-indigo-600 text-white px-10 py-3 rounded-2xl font-black uppercase text-xs shadow-xl transition">Accept Job</button>
+                                        <button className="bg-red-100 text-red-600 px-8 py-3 rounded-2xl font-black uppercase text-xs shadow-sm font-black italic">Reject</button>
+                                        <button className="bg-indigo-600 text-white px-10 py-3 rounded-2xl font-black uppercase text-xs shadow-xl transition font-black italic">Accept Job</button>
                                     </div>
                                 </div>
                             ))}
@@ -209,18 +208,18 @@ const Dashboard = ({ user, onLogout }) => {
                             {products.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase())).map(p => (
                                 <div key={p._id} className="bg-white p-8 rounded-3xl shadow hover:shadow-2xl transition border-t-4 border-indigo-500">
                                     <img src={p.image} className="w-full h-44 object-contain rounded-2xl mb-4 bg-gray-50" />
-                                    <h3 className="font-black text-gray-800 text-sm uppercase mb-1 tracking-tight italic">{p.name}</h3>
-                                    <p className="text-[10px] text-gray-400 font-black mb-4 uppercase tracking-widest">Seller: {p.sellerName || 'Verified User'}</p>
-                                    <p className="text-2xl font-black text-indigo-600 italic tracking-tighter">₦{p.price.toLocaleString()}</p>
-                                    {/* Action button connected to addToCart */}
-                                    <button onClick={() => addToCart(p)} className="mt-6 w-full bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl transition">Buy Now / Add To Cart</button>
+                                    <h3 className="font-black text-gray-800 text-sm uppercase mb-1 tracking-tight italic font-black">{p.name}</h3>
+                                    <p className="text-[10px] text-gray-400 font-black mb-4 uppercase tracking-widest font-black">Seller: {p.sellerName || 'Verified User'}</p>
+                                    <p className="text-2xl font-black text-indigo-600 italic tracking-tighter font-mono font-black">₦{p.price.toLocaleString()}</p>
+                                    {/* FIX 3: Button properly calls addToCart */}
+                                    <button onClick={() => addToCart(p)} className="mt-6 w-full bg-indigo-600 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl transition font-black italic active:scale-95">Buy Now / Add To Cart</button>
                                 </div>
                             ))}
                         </section>
                     )}
                 </div>
 
-                {/* Cart Drawer Summary with Pay Button */}
+                {/* FIX 4: Cart Summary View with "Pay" button */}
                 {showCart && (
                     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex justify-end">
                         <div className="w-full max-w-md bg-white h-full shadow-2xl p-8 flex flex-col">
@@ -229,10 +228,10 @@ const Dashboard = ({ user, onLogout }) => {
                                 <button onClick={() => setShowCart(false)} className="text-gray-400 text-2xl font-black">×</button>
                             </div>
                             <div className="flex-grow overflow-y-auto py-6 space-y-4">
-                                {cart.length === 0 ? <p className="text-center italic text-gray-400">Cart is empty.</p> : cart.map(item => (
+                                {cart.length === 0 ? <p className="text-center italic text-gray-400 font-black italic">Cart is empty.</p> : cart.map(item => (
                                     <div key={item._id} className="flex justify-between items-center bg-gray-50 p-4 rounded-2xl border-l-4 border-indigo-500 shadow-sm">
                                         <p className="font-black text-xs uppercase text-gray-800">{item.name} (x{item.qty})</p>
-                                        <p className="font-black text-xs">₦{(item.price * item.qty).toLocaleString()}</p>
+                                        <p className="font-black text-xs font-mono">₦{(item.price * item.qty).toLocaleString()}</p>
                                     </div>
                                 ))}
                             </div>
@@ -240,10 +239,10 @@ const Dashboard = ({ user, onLogout }) => {
                                 <div className="border-t pt-6 space-y-4">
                                     <div className="flex justify-between font-black text-xl text-indigo-900 uppercase tracking-tighter italic">
                                         <span>Total</span>
-                                        <span>₦{cart.reduce((s, i) => s + (i.price * i.qty), 0).toLocaleString()}</span>
+                                        <span className="font-mono">₦{cart.reduce((s, i) => s + (i.price * i.qty), 0).toLocaleString()}</span>
                                     </div>
-                                    <button onClick={handleCheckout} className="w-full bg-green-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 transition">Pay Now</button>
-                                    <button onClick={() => setCart([])} className="w-full text-[10px] text-red-500 font-bold uppercase tracking-widest hover:underline">Clear Bag</button>
+                                    <button onClick={handleCheckout} className="w-full bg-green-600 text-white py-5 rounded-2xl font-black uppercase tracking-widest shadow-xl active:scale-95 transition font-black italic">Pay Now</button>
+                                    <button onClick={() => setCart([])} className="w-full text-[10px] text-red-500 font-bold uppercase tracking-widest hover:underline font-black italic">Clear Bag</button>
                                 </div>
                             )}
                         </div>
